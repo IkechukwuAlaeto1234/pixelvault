@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #2d1b69 100%);
+            min-height: 100vh;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-6">
+        <nav class="mb-6">
+            <div class="flex gap-4">
+                <a href="/dashboard" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Dashboard</a>
+                <a href="/dashboard/upload" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Upload</a>
+                <a href="/dashboard/gallery" class="px-4 py-2 bg-purple-600 rounded">Gallery</a>
+                <a href="/dashboard/categories" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Categories</a>
+                <a href="/logout" class="px-4 py-2 bg-red-600 rounded hover:bg-red-700 ml-auto">Logout</a>
+            </div>
+        </nav>
+
+        <div class="space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold">Gallery</h1>
+                    <p class="text-gray-400 mt-1">Browse and manage your images</p>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="relative">
+                        <input type="text" id="search-input" placeholder="Search images..." 
+                               value="<%= filters.search %>"
+                               class="pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white">
+                    </div>
+                    
+                    <select id="category-filter" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white">
+                        <option value="all" <%= filters.category === 'all' ? 'selected' : '' %>>All Categories</option>
+                        <% categories.forEach(category => { %>
+                            <option value="<%= category._id %>" <%= filters.category === category._id ? 'selected' : '' %>><%= category.name %></option>
+                        <% }); %>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-white/5 backdrop-blur-lg border border-white/20 rounded-xl p-6">
+                <% if (images.length > 0) { %>
+                    <div id="image-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                        <% images.forEach(image => { %>
+                            <div class="group relative bg-white/10 rounded-lg overflow-hidden border border-white/10" data-image-id="<%= image._id %>">
+                                <div class="aspect-square relative overflow-hidden">
+                                    <img src="<%= image.filePath %>" alt="<%= image.alt || image.originalName %>" 
+                                         class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                         loading="lazy">
+                                    
+                                    <div class="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                        <button type="button" onclick="copyImageUrl('<%= image.filePath %>')" 
+                                                class="p-2 bg-blue-500/80 hover:bg-blue-500 rounded-full"
+                                                title="Copy URL">
+                                            📋
+                                        </button>
+                                        <button type="button" onclick="viewImage('<%= image._id %>')" 
+                                                class="p-2 bg-green-500/80 hover:bg-green-500 rounded-full"
+                                                title="View Details">
+                                            👁️
+                                        </button>
+                                        <button type="button" onclick="deleteImage('<%= image._id %>', '<%= image.originalName %>')" 
+                                                class="p-2 bg-red-500/80 hover:bg-red-500 rounded-full"
+                                                title="Delete Image">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="absolute top-2 left-2">
+                                        <span class="px-2 py-1 bg-black/70 text-xs text-white rounded-full">
+                                            <%= image.category.name %>
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-3">
+                                    <p class="text-sm font-medium text-white truncate" title="<%= image.originalName %>">
+                                        <%= image.originalName %>
+                                    </p>
+                                    <div class="flex items-center justify-between mt-1">
+                                        <p class="text-xs text-gray-400">
+                                            <%= new Date(image.uploadDate).toLocaleDateString() %>
+                                        </p>
+                                        <p class="text-xs text-gray-500">
+                                            <%= (image.size / 1024 / 1024).toFixed(2) %> MB
+                                        </p>
+                                    </div>
+                                    <% if (image.tags && image.tags.length > 0) { %>
+                                        <div class="mt-2 flex flex-wrap gap-1">
+                                            <% image.tags.slice(0, 3).forEach(tag => { %>
+                                                <span class="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded">
+                                                    <%= tag %>
+                                                </span>
+                                            <% }); %>
+                                            <% if (image.tags.length > 3) { %>
+                                                <span class="px-2 py-1 bg-gray-500/20 text-gray-400 text-xs rounded">
+                                                    +<%= image.tags.length - 3 %>
+                                                </span>
+                                            <% } %>
+                                        </div>
+                                    <% } %>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+
+                    <% if (pagination.total > 1) { %>
+                        <div class="flex items-center justify-center mt-8 space-x-2">
+                            <% if (pagination.hasPrev) { %>
+                                <a href="?page=<%= pagination.prev %>&category=<%= filters.category %>&search=<%= filters.search %>" 
+                                   class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg">
+                                    ← Previous
+                                </a>
+                            <% } %>
+                            
+                            <span class="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg">
+                                Page <%= pagination.current %> of <%= pagination.total %>
+                            </span>
+                            
+                            <% if (pagination.hasNext) { %>
+                                <a href="?page=<%= pagination.next %>&category=<%= filters.category %>&search=<%= filters.search %>" 
+                                   class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg">
+                                    Next →
+                                </a>
+                            <% } %>
+                        </div>
+                    <% } %>
+
+                <% } else { %>
+                    <div class="text-center py-12">
+                        <p class="text-gray-400 mb-4">No images found</p>
+                        <% if (filters.search || filters.category !== 'all') { %>
+                            <button type="button" onclick="clearFilters()" class="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg">
+                                Clear Filters
+                            </button>
+                        <% } else { %>
+                            <a href="/dashboard/upload" class="inline-block px-6 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg">
+                                Upload Your First Image
+                            </a>
+                        <% } %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="image-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/80" onclick="closeModal()"></div>
+        <div class="relative w-full h-full flex items-center justify-center p-4">
+            <div class="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl max-w-4xl max-h-full overflow-auto">
+                <div id="modal-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search-input');
+            const categoryFilter = document.getElementById('category-filter');
+            
+            let searchTimeout;
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => updateFilters(), 500);
+                });
+            }
+            
+            if (categoryFilter) {
+                categoryFilter.addEventListener('change', updateFilters);
+            }
+            
+            function updateFilters() {
+                const search = searchInput ? searchInput.value.trim() : '';
+                const category = categoryFilter ? categoryFilter.value : 'all';
+                
+                const url = new URL(window.location);
+                url.searchParams.set('search', search);
+                url.searchParams.set('category', category);
+                url.searchParams.delete('page');
+                
+                window.location.href = url.toString();
+            }
+        });
+
+        function clearFilters() {
+            const url = new URL(window.location);
+            url.search = '';
+            window.location.href = url.toString();
+        }
+        
+        function copyImageUrl(imagePath) {
+            const fullUrl = window.location.origin + imagePath;
+            navigator.clipboard.writeText(fullUrl).then(() => {
+                alert('URL copied to clipboard');
+            }).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = fullUrl;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('URL copied to clipboard');
+            });
+        }
+        
+        function viewImage(imageId) {
+            const modal = document.getElementById('image-modal');
+            const modalContent = document.getElementById('modal-content');
+            
+            const imageCard = document.querySelector('[data-image-id="' + imageId + '"]');
+            if (!imageCard) return;
+            
+            const img = imageCard.querySelector('img');
+            const imageName = img.alt || 'Untitled';
+            const imageSrc = img.src;
+            
+            modalContent.innerHTML = `
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-white">Image Details</h3>
+                        <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-white">×</button>
+                    </div>
+                    <div class="max-w-2xl mx-auto">
+                        <img src="${imageSrc}" alt="${imageName}" class="w-full rounded-lg mb-4">
+                        <div class="bg-white/5 rounded-lg p-4">
+                            <h4 class="font-semibold text-white mb-2">${imageName}</h4>
+                            <button type="button" onclick="copyImageUrl('${imageSrc.replace(window.location.origin, '')}')" class="text-blue-400 hover:text-blue-300">
+                                Copy URL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+        }
+        
+        function closeModal() {
+            document.getElementById('image-modal').classList.add('hidden');
+        }
+        
+        async function deleteImage(imageId, imageName) {
+            if (!confirm('Delete "' + imageName + '"? This cannot be undone.')) return;
+            
+            try {
+                const response = await fetch('/upload/image/' + imageId, { method: 'DELETE' });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Image deleted successfully');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    alert(result.error || 'Failed to delete image');
+                }
+            } catch (error) {
+                alert('Failed to delete image');
+            }
+        }
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #2d1b69 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .cyber-btn {
+            background: linear-gradient(45deg, #ff0080, #8b5cf6);
+            padding: 8px 20px;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-6">
+        <nav class="mb-6">
+            <div class="flex gap-4">
+                <a href="/dashboard" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Dashboard</a>
+                <a href="/dashboard/upload" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Upload</a>
+                <a href="/dashboard/gallery" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Gallery</a>
+                <a href="/dashboard/categories" class="px-4 py-2 bg-purple-600 rounded">Categories</a>
+                <a href="/logout" class="px-4 py-2 bg-red-600 rounded hover:bg-red-700 ml-auto">Logout</a>
+            </div>
+        </nav>
+
+        <div class="space-y-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold">Categories</h1>
+                    <p class="text-gray-400 mt-1">Manage your image categories</p>
+                </div>
+                <button id="add-category-btn" class="cyber-btn">Add Category</button>
+            </div>
+
+            <div class="bg-white/5 backdrop-blur-lg border border-white/20 rounded-xl p-6">
+                <% if (categories && categories.length > 0) { %>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <% categories.forEach(category => { %>
+                            <div class="bg-white/10 rounded-lg p-4 border border-white/10">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="font-semibold text-white"><%= category.name %></h3>
+                                        <p class="text-sm text-gray-400 mt-1"><%= category.description || 'No description' %></p>
+                                        <p class="text-xs text-gray-500 mt-2"><%= category.imageCount || 0 %> images</p>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button data-category-id="<%= category._id %>" data-category-name="<%= category.name %>" data-category-description="<%= category.description || '' %>" class="edit-category-btn text-blue-400 hover:text-blue-300 p-1">
+                                            Edit
+                                        </button>
+                                        <button data-category-id="<%= category._id %>" data-category-name="<%= category.name %>" class="delete-category-btn text-red-400 hover:text-red-300 p-1">
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-12">
+                        <p class="text-gray-400 mb-4">No categories created yet</p>
+                        <button id="add-first-category-btn" class="px-6 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg">
+                            Create Your First Category
+                        </button>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div id="category-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/80" onclick="closeModal()"></div>
+        <div class="relative w-full h-full flex items-center justify-center p-4">
+            <div class="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl w-full max-w-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-white" id="modal-title">Add Category</h3>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-white">×</button>
+                </div>
+                
+                <div class="space-y-4">
+                    <input type="hidden" id="category-id">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Name *</label>
+                        <input type="text" id="category-name" required class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                        <textarea id="category-description" rows="3" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white resize-none"></textarea>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="saveCategory()" class="flex-1 cyber-btn">Save</button>
+                        <button onclick="closeModal()" class="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const addBtn = document.getElementById('add-category-btn');
+            const addFirstBtn = document.getElementById('add-first-category-btn');
+            
+            if (addBtn) addBtn.addEventListener('click', () => openModal('add'));
+            if (addFirstBtn) addFirstBtn.addEventListener('click', () => openModal('add'));
+
+            // Handle edit category buttons
+            document.querySelectorAll('.edit-category-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.dataset.categoryId;
+                    const name = this.dataset.categoryName;
+                    const description = this.dataset.categoryDescription;
+                    openModal('edit', id, name, description);
+                });
+            });
+
+            // Handle delete category buttons
+            document.querySelectorAll('.delete-category-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.dataset.categoryId;
+                    const name = this.dataset.categoryName;
+                    deleteCategory(id, name);
+                });
+            });
+        });
+
+        function openModal(mode, id, name, description) {
+            const modal = document.getElementById('category-modal');
+            const title = document.getElementById('modal-title');
+            const categoryId = document.getElementById('category-id');
+            const categoryName = document.getElementById('category-name');
+            const categoryDesc = document.getElementById('category-description');
+            
+            if (mode === 'edit') {
+                title.textContent = 'Edit Category';
+                categoryId.value = id || '';
+                categoryName.value = name || '';
+                categoryDesc.value = description || '';
+            } else {
+                title.textContent = 'Add Category';
+                categoryId.value = '';
+                categoryName.value = '';
+                categoryDesc.value = '';
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('category-modal').classList.add('hidden');
+        }
+
+        async function saveCategory() {
+            const id = document.getElementById('category-id').value;
+            const name = document.getElementById('category-name').value.trim();
+            const description = document.getElementById('category-description').value.trim();
+            
+            if (!name) {
+                alert('Category name is required');
+                return;
+            }
+            
+            try {
+                const url = id ? `/dashboard/categories/${id}` : '/dashboard/categories';
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                alert('Failed to save category');
+            }
+        }
+
+        async function deleteCategory(id, name) {
+            if (!confirm(`Delete category "${name}"?`)) return;
+            
+            try {
+                const response = await fetch(`/dashboard/categories/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                alert('Failed to delete category');
+            }
+        }
+    </script>
+</body>
+</html>

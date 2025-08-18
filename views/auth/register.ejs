@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --neon-blue: #00d4ff;
+            --neon-pink: #ff0080;
+            --neon-purple: #8b5cf6;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #2d1b69 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .orbitron {
+            font-family: 'Orbitron', monospace;
+        }
+
+        .neon-text {
+            text-shadow: 
+                0 0 10px var(--neon-pink),
+                0 0 20px var(--neon-pink),
+                0 0 40px var(--neon-pink);
+        }
+
+        .cyber-container {
+            background: linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+        }
+
+        .cyber-btn {
+            background: linear-gradient(45deg, var(--neon-pink), var(--neon-purple));
+            border: none;
+            border-radius: 50px;
+            padding: 12px 30px;
+            color: white;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .cyber-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(255, 0, 128, 0.4);
+        }
+
+        .form-input {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 15px;
+            color: white;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex items-center justify-center py-8 px-4">
+        <div class="cyber-container p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-black orbitron neon-text mb-2">
+                    PIXEL<span style="color: var(--neon-blue);">VAULT</span>
+                </h1>
+                <p class="text-gray-300">Initial System Setup</p>
+            </div>
+
+            <% if (error) { %>
+                <div class="bg-red-500 bg-opacity-20 border border-red-500 rounded-lg p-3 mb-6">
+                    <p class="text-red-300 text-sm"><%= error %></p>
+                </div>
+            <% } %>
+
+            <form method="POST" action="/register" class="space-y-6">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-300 mb-2">Username</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        required
+                        class="form-input w-full"
+                        placeholder="Choose a username"
+                    >
+                </div>
+
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        required
+                        class="form-input w-full"
+                        placeholder="Enter your email"
+                    >
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        required
+                        minlength="6"
+                        class="form-input w-full"
+                        placeholder="Create a password"
+                    >
+                </div>
+
+                <div>
+                    <label for="confirmPassword" class="block text-sm font-medium text-gray-300 mb-2">Confirm Password</label>
+                    <input 
+                        type="password" 
+                        id="confirmPassword" 
+                        name="confirmPassword" 
+                        required
+                        minlength="6"
+                        class="form-input w-full"
+                        placeholder="Confirm your password"
+                    >
+                </div>
+                <p class="text-gray-400 text-sm">
+    Already have an account? 
+    <a href="/login" class="text-blue-400 hover:text-blue-300 transition-colors duration-200">
+      Login
+    </a>
+  </p>
+                <button type="submit" class="cyber-btn w-full">
+                    Initialize System
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-gray-400 text-sm">Setting up your secure image vault</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

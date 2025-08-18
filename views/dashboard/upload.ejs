@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #2d1b69 100%);
+            min-height: 100vh;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-6">
+        <nav class="mb-6">
+            <div class="flex gap-4">
+                <a href="/dashboard" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Dashboard</a>
+                <a href="/dashboard/upload" class="px-4 py-2 bg-purple-600 rounded">Upload</a>
+                <a href="/dashboard/gallery" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Gallery</a>
+                <a href="/dashboard/categories" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Categories</a>
+                <a href="/logout" class="px-4 py-2 bg-red-600 rounded hover:bg-red-700 ml-auto">Logout</a>
+            </div>
+        </nav>
+
+        <div class="space-y-6">
+            <div>
+                <h1 class="text-3xl font-bold">Upload Images</h1>
+                <p class="text-gray-400 mt-1">Add new images to your vault</p>
+            </div>
+
+            <div class="bg-white/5 backdrop-blur-lg border border-white/20 rounded-xl p-6">
+                <form id="upload-form" enctype="multipart/form-data" class="space-y-6">
+                    <div>
+                        <label for="category" class="block text-sm font-medium text-gray-300 mb-2">Category *</label>
+                        <select id="category" name="category" required class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white">
+                            <option value="">Select a category...</option>
+                            <% if (categories && categories.length > 0) { %>
+                                <% categories.forEach(category => { %>
+                                    <option value="<%= category._id %>"><%= category.name %></option>
+                                <% }); %>
+                            <% } %>
+                        </select>
+                        <% if (!categories || categories.length === 0) { %>
+                            <p class="text-yellow-400 text-sm mt-2">⚠️ You need to create a category first. <a href="/dashboard/categories" class="text-blue-400">Create one here</a>.</p>
+                        <% } %>
+                    </div>
+
+                    <div>
+                        <label for="image-files" class="block text-sm font-medium text-gray-300 mb-2">Images *</label>
+                        <div id="drop-zone" class="border-2 border-dashed border-white/20 rounded-lg p-8 text-center cursor-pointer hover:border-white/40">
+                            <p class="text-gray-300 mb-2">Drag and drop images here, or click to select</p>
+                            <p class="text-sm text-gray-500">Supports: JPG, PNG, GIF, WebP (Max: 10MB each)</p>
+                            <input type="file" id="image-files" name="imageFiles" multiple accept="image/*" class="hidden">
+                        </div>
+                        <div id="file-list" class="mt-4 space-y-2 hidden">
+                            <p class="text-sm text-gray-300 font-medium">Selected files:</p>
+                            <div id="selected-files"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="tags" class="block text-sm font-medium text-gray-300 mb-2">Tags</label>
+                            <input type="text" id="tags" name="tags" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white" placeholder="e.g., blog, header, icons (comma-separated)">
+                        </div>
+                        <div>
+                            <label for="alt" class="block text-sm font-medium text-gray-300 mb-2">Alt Text</label>
+                            <input type="text" id="alt" name="alt" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white" placeholder="Alternative text for accessibility">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                        <textarea id="description" name="description" rows="3" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white resize-none" placeholder="Optional description for these images"></textarea>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button type="submit" id="upload-btn" class="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg">
+                            <span id="upload-text">Upload Images</span>
+                        </button>
+                        <button type="button" id="clear-btn" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg">
+                            Clear
+                        </button>
+                    </div>
+
+                    <div id="progress-container" class="hidden">
+                        <div class="flex justify-between text-sm text-gray-300 mb-2">
+                            <span>Uploading...</span>
+                            <span id="progress-text">0%</span>
+                        </div>
+                        <div class="w-full bg-white/10 rounded-full h-2">
+                            <div id="progress-bar" class="bg-gradient-to-r from-pink-500 to-purple-600 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div id="upload-results" class="hidden bg-white/5 backdrop-blur-lg border border-white/20 rounded-xl p-6">
+                <h2 class="text-xl font-bold text-white mb-4">Upload Results</h2>
+                <div id="results-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('upload-form');
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('image-files');
+            const fileList = document.getElementById('file-list');
+            const selectedFiles = document.getElementById('selected-files');
+            const uploadBtn = document.getElementById('upload-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const uploadResults = document.getElementById('upload-results');
+
+            let selectedFilesList = [];
+
+            dropZone.addEventListener('click', () => fileInput.click());
+            
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('border-blue-400');
+            });
+            
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('border-blue-400');
+                const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                handleFiles(files);
+            });
+
+            fileInput.addEventListener('change', function(e) {
+                handleFiles(Array.from(e.target.files));
+            });
+
+            clearBtn.addEventListener('click', function() {
+                form.reset();
+                selectedFilesList = [];
+                updateFileList();
+                uploadResults.classList.add('hidden');
+            });
+
+            function handleFiles(files) {
+                selectedFilesList = files;
+                updateFileList();
+            }
+
+            function updateFileList() {
+                if (selectedFilesList.length === 0) {
+                    fileList.classList.add('hidden');
+                    return;
+                }
+
+                fileList.classList.remove('hidden');
+                selectedFiles.innerHTML = selectedFilesList.map((file, index) => `
+                    <div class="flex items-center justify-between bg-white/10 rounded-lg p-3">
+                        <div class="flex items-center">
+                            <span class="text-sm text-white">${file.name}</span>
+                            <span class="text-xs text-gray-400 ml-2">(${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                        </div>
+                        <button type="button" onclick="removeFile(${index})" class="text-red-400 hover:text-red-300">×</button>
+                    </div>
+                `).join('');
+            }
+
+            window.removeFile = function(index) {
+                selectedFilesList.splice(index, 1);
+                updateFileList();
+            }
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                if (selectedFilesList.length === 0) {
+                    alert('Please select at least one image');
+                    return;
+                }
+
+                const categorySelect = document.getElementById('category');
+                if (!categorySelect.value) {
+                    alert('Please select a category');
+                    return;
+                }
+
+                const formData = new FormData();
+                selectedFilesList.forEach(file => formData.append('imageFiles', file));
+                formData.append('category', categorySelect.value);
+                formData.append('tags', document.getElementById('tags').value);
+                formData.append('alt', document.getElementById('alt').value);
+                formData.append('description', document.getElementById('description').value);
+
+                uploadBtn.disabled = true;
+                document.getElementById('upload-text').textContent = 'Uploading...';
+                progressContainer.classList.remove('hidden');
+
+                try {
+                    const response = await fetch('/upload/images', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        alert(`Successfully uploaded ${result.images.length} image(s)`);
+                        showResults(result.images);
+                        form.reset();
+                        selectedFilesList = [];
+                        updateFileList();
+                    } else {
+                        alert(result.error || 'Upload failed');
+                    }
+                } catch (error) {
+                    alert('Upload failed due to network error');
+                } finally {
+                    uploadBtn.disabled = false;
+                    document.getElementById('upload-text').textContent = 'Upload Images';
+                    progressContainer.classList.add('hidden');
+                    progressBar.style.width = '0%';
+                }
+            });
+
+            function showResults(images) {
+                const content = document.getElementById('results-content');
+                content.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${images.map(image => `
+                            <div class="bg-white/10 rounded-lg p-4">
+                                <img src="${image.filePath}" alt="${image.alt || image.originalName}" class="w-full h-32 object-cover rounded mb-2">
+                                <p class="text-sm text-white truncate">${image.originalName}</p>
+                                <p class="text-xs text-gray-400">${image.category ? image.category.name : 'Unknown'}</p>
+                                <button onclick="copyUrl('${image.filePath}')" class="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded mt-2">
+                                    Copy URL
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                uploadResults.classList.remove('hidden');
+            }
+
+            window.copyUrl = function(path) {
+                const url = window.location.origin + path;
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('URL copied to clipboard');
+                }).catch(() => {
+                    alert('Failed to copy URL');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

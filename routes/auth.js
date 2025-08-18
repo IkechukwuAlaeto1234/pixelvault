@@ -1,0 +1,205 @@
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const { User } = require('../models');
+const router = express.Router();
+
+// Middleware to check if user is authenticated
+const requireAuth = (req, res, next) => {
+  if (req.session.authenticated) {
+    next();
+  } else {
+    res.redirect('/login');
+  }
+};
+
+// Middleware to check if user is already logged in
+const redirectIfAuth = (req, res, next) => {
+  if (req.session.authenticated) {
+    res.redirect('/dashboard');
+  } else {
+    next();
+  }
+};
+
+// Login page
+router.get('/login', redirectIfAuth, (req, res) => {
+  res.render('auth/login', {
+    error: null,
+    message: null, // We'll handle logout messages via JavaScript now
+    title: 'Login - PixelVault'
+  });
+});
+
+// Register page (only for initial setup)
+router.get('/register', async (req, res) => {
+  try {
+    // Check if any users exist
+    const userCount = await User.countDocuments();
+    if (userCount > 0) {
+      return res.redirect('/login');
+    }
+   
+    res.render('auth/register', {
+      error: null,
+      title: 'Setup Account - PixelVault'
+    });
+  } catch (error) {
+    console.error('Register page error:', error);
+    res.redirect('/login');
+  }
+});
+
+// Handle login
+router.post('/login', redirectIfAuth, async (req, res) => {
+  const { username, password } = req.body;
+ 
+  try {
+    if (!username || !password) {
+      return res.render('auth/login', {
+        error: 'Please provide both username and password',
+        title: 'Login - PixelVault'
+      });
+    }
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.render('auth/login', {
+        error: 'Invalid username or password',
+        title: 'Login - PixelVault'
+      });
+    }
+   
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return res.render('auth/login', {
+        error: 'Invalid username or password',
+        title: 'Login - PixelVault'
+      });
+    }
+   
+    req.session.authenticated = true;
+    req.session.userId = user._id;
+    req.session.username = user.username;
+    req.session.user = {
+      id: user._id,
+      username: user.username,
+      email: user.email
+    };
+   
+    res.redirect('/dashboard');
+  } catch (error) {
+    console.error('Login error:', error);
+    res.render('auth/login', {
+      error: 'An error occurred during login',
+      title: 'Login - PixelVault'
+    });
+  }
+});
+
+// Handle registration (only for initial setup)
+router.post('/register', async (req, res) => {
+  const { username, email, password, confirmPassword } = req.body;
+ 
+  try {
+    // Check if any users exist
+    const userCount = await User.countDocuments();
+    if (userCount > 0) {
+      return res.redirect('/login');
+    }
+
+    if (!username || !email || !password || !confirmPassword) {
+      return res.render('auth/register', {
+        error: 'All fields are required',
+        title: 'Setup Account - PixelVault'
+      });
+    }
+ 
+    if (password !== confirmPassword) {
+      return res.render('auth/register', {
+        error: 'Passwords do not match',
+        title: 'Setup Account - PixelVault'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.render('auth/register', {
+        error: 'Password must be at least 6 characters long',
+        title: 'Setup Account - PixelVault'
+      });
+    }
+   
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
+      username,
+      email,
+      password: hashedPassword
+    });
+   
+    await user.save();
+   
+    req.session.authenticated = true;
+    req.session.userId = user._id;
+    req.session.username = user.username;
+    req.session.user = {
+      id: user._id,
+      username: user.username,
+      email: user.email
+    };
+   
+    res.redirect('/dashboard');
+  } catch (error) {
+    console.error('Registration error:', error);
+    let errorMessage = 'An error occurred during registration';
+   
+    if (error.code === 11000) {
+      if (error.keyPattern && error.keyPattern.username) {
+        errorMessage = 'Username already exists';
+      } else if (error.keyPattern && error.keyPattern.email) {
+        errorMessage = 'Email already exists';
+      }
+    } else if (error.name === 'ValidationError') {
+      errorMessage = Object.values(error.errors)[0].message;
+    }
+   
+    res.render('auth/register', {
+      error: errorMessage,
+      title: 'Setup Account - PixelVault'
+    });
+  }
+});
+
+// GET Logout (for direct links) - with user feedback
+router.get('/logout', (req, res) => {
+  const username = req.session.username || 'User';
+  
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Logout error:', err);
+      return res.redirect('/login');
+    }
+    
+    res.clearCookie('connect.sid'); // Clear the session cookie
+    
+    // Redirect with query parameter for user feedback
+    res.redirect(`/login?logout=success&user=${encodeURIComponent(username)}`);
+  });
+});
+
+// POST Logout (for forms) - with user feedback
+router.post('/logout', (req, res) => {
+  const username = req.session.username || 'User';
+  
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Logout error:', err);
+    }
+    res.clearCookie('connect.sid'); // Clear the session cookie
+    
+    // For POST logout, we can't easily pass a message to the login page
+    // So we'll redirect with a query parameter instead
+    res.redirect('/login?logout=success');
+  });
+});
+
+module.exports = router;
+module.exports.requireAuth = requireAuth;
