@@ -5,37 +5,85 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title %></title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #2d1b69 100%);
             min-height: 100vh;
             color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .glow {
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.5);
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        .file-card {
+            transition: all 0.3s ease;
+        }
+        .file-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        #drop-zone.drag-over {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #8b5cf6;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+        }
+        .storage-bar {
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
         }
     </style>
 </head>
 <body>
     <div class="container mx-auto px-4 py-6">
         <nav class="mb-6">
-            <div class="flex gap-4">
-                <a href="/dashboard" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Dashboard</a>
-                <a href="/dashboard/upload" class="px-4 py-2 bg-purple-600 rounded">Upload</a>
-                <a href="/dashboard/gallery" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Gallery</a>
-                <a href="/dashboard/categories" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Categories</a>
-                <a href="/logout" class="px-4 py-2 bg-red-600 rounded hover:bg-red-700 ml-auto">Logout</a>
+            <div class="flex flex-wrap gap-4">
+                <a href="/dashboard" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition-colors">Dashboard</a>
+                <a href="/dashboard/upload" class="px-4 py-2 bg-purple-600 rounded glow">Upload</a>
+                <a href="/dashboard/gallery" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition-colors">Gallery</a>
+                <a href="/dashboard/categories" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition-colors">Categories</a>
+                <a href="/logout" class="px-4 py-2 bg-red-600 rounded hover:bg-red-700 transition-colors ml-auto">Logout</a>
             </div>
         </nav>
+
+        <!-- Storage Usage Indicator -->
+        <div class="mb-6 bg-white/5 backdrop-blur-lg border border-white/20 rounded-xl p-4">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-sm font-medium text-gray-300">Storage Usage</h3>
+                <span class="text-xs text-gray-400" id="storage-percentage">0%</span>
+            </div>
+            <div class="storage-bar bg-white/10">
+                <div id="storage-used-bar" class="storage-bar h-full bg-gradient-to-r from-green-400 to-blue-500" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                <span id="storage-used">0 MB</span>
+                <span id="storage-total">10 GB</span>
+            </div>
+        </div>
 
         <div class="space-y-6">
             <div>
                 <h1 class="text-3xl font-bold">Upload Images</h1>
-                <p class="text-gray-400 mt-1">Add new images to your vault</p>
+                <p class="text-gray-400 mt-1">Add new images to your vault (up to 100MB per file)</p>
             </div>
 
             <div class="bg-white/5 backdrop-blur-lg border border-white/20 rounded-xl p-6">
                 <form id="upload-form" enctype="multipart/form-data" class="space-y-6">
                     <div>
                         <label for="category" class="block text-sm font-medium text-gray-300 mb-2">Category *</label>
-                        <select id="category" name="category" required class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white">
+                        <select id="category" name="category" required class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none">
                             <option value="">Select a category...</option>
                             <% if (categories && categories.length > 0) { %>
                                 <% categories.forEach(category => { %>
@@ -44,63 +92,87 @@
                             <% } %>
                         </select>
                         <% if (!categories || categories.length === 0) { %>
-                            <p class="text-yellow-400 text-sm mt-2">⚠️ You need to create a category first. <a href="/dashboard/categories" class="text-blue-400">Create one here</a>.</p>
+                            <p class="text-yellow-400 text-sm mt-2">⚠️ You need to create a category first. <a href="/dashboard/categories" class="text-blue-400 hover:underline">Create one here</a>.</p>
                         <% } %>
                     </div>
 
                     <div>
-                        <label for="image-files" class="block text-sm font-medium text-gray-300 mb-2">Images *</label>
-                        <div id="drop-zone" class="border-2 border-dashed border-white/20 rounded-lg p-8 text-center cursor-pointer hover:border-white/40">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Images *</label>
+                        <div id="drop-zone" class="border-2 border-dashed border-white/20 rounded-lg p-8 text-center cursor-pointer transition-all duration-300">
+                            <div class="text-4xl mb-3 text-gray-400">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
                             <p class="text-gray-300 mb-2">Drag and drop images here, or click to select</p>
-                            <p class="text-sm text-gray-500">Supports: JPG, PNG, GIF, WebP (Max: 10MB each)</p>
+                            <p class="text-sm text-gray-500">Supports: JPG, PNG, GIF, WebP, BMP, TIFF (Max: 100MB each)</p>
                             <input type="file" id="image-files" name="imageFiles" multiple accept="image/*" class="hidden">
                         </div>
                         <div id="file-list" class="mt-4 space-y-2 hidden">
                             <p class="text-sm text-gray-300 font-medium">Selected files:</p>
-                            <div id="selected-files"></div>
+                            <div id="selected-files" class="space-y-2"></div>
+                            <div class="flex justify-between text-xs text-gray-400 mt-2">
+                                <span id="total-files">0 files</span>
+                                <span id="total-size">0 MB</span>
+                            </div>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label for="tags" class="block text-sm font-medium text-gray-300 mb-2">Tags</label>
-                            <input type="text" id="tags" name="tags" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white" placeholder="e.g., blog, header, icons (comma-separated)">
+                            <input type="text" id="tags" name="tags" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" placeholder="e.g., blog, header, icons (comma-separated)">
                         </div>
                         <div>
                             <label for="alt" class="block text-sm font-medium text-gray-300 mb-2">Alt Text</label>
-                            <input type="text" id="alt" name="alt" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white" placeholder="Alternative text for accessibility">
+                            <input type="text" id="alt" name="alt" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" placeholder="Alternative text for accessibility">
                         </div>
                     </div>
 
                     <div>
                         <label for="description" class="block text-sm font-medium text-gray-300 mb-2">Description</label>
-                        <textarea id="description" name="description" rows="3" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white resize-none" placeholder="Optional description for these images"></textarea>
+                        <textarea id="description" name="description" rows="3" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" placeholder="Optional description for these images"></textarea>
                     </div>
 
-                    <div class="flex gap-4">
-                        <button type="submit" id="upload-btn" class="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg">
+                    <div class="flex flex-wrap gap-4">
+                        <button type="submit" id="upload-btn" class="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center">
+                            <i class="fas fa-upload mr-2"></i>
                             <span id="upload-text">Upload Images</span>
                         </button>
-                        <button type="button" id="clear-btn" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg">
+                        <button type="button" id="clear-btn" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex items-center">
+                            <i class="fas fa-times mr-2"></i>
                             Clear
                         </button>
                     </div>
 
                     <div id="progress-container" class="hidden">
                         <div class="flex justify-between text-sm text-gray-300 mb-2">
-                            <span>Uploading...</span>
+                            <span id="progress-status">Preparing upload...</span>
                             <span id="progress-text">0%</span>
                         </div>
-                        <div class="w-full bg-white/10 rounded-full h-2">
-                            <div id="progress-bar" class="bg-gradient-to-r from-pink-500 to-purple-600 h-2 rounded-full" style="width: 0%"></div>
+                        <div class="w-full bg-white/10 rounded-full h-2.5">
+                            <div id="progress-bar" class="bg-gradient-to-r from-pink-500 to-purple-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="text-xs text-gray-400 mt-2 flex justify-between">
+                            <span id="upload-speed">-</span>
+                            <span id="time-remaining">-</span>
                         </div>
                     </div>
                 </form>
             </div>
 
             <div id="upload-results" class="hidden bg-white/5 backdrop-blur-lg border border-white/20 rounded-xl p-6">
-                <h2 class="text-xl font-bold text-white mb-4">Upload Results</h2>
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-check-circle text-green-400 mr-2"></i>
+                    Upload Results
+                </h2>
                 <div id="results-content"></div>
+            </div>
+
+            <div id="error-container" class="hidden bg-red-500/10 backdrop-blur-lg border border-red-500/20 rounded-xl p-6">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-exclamation-circle text-red-400 mr-2"></i>
+                    Upload Failed
+                </h2>
+                <div id="error-content" class="text-red-300"></div>
             </div>
         </div>
     </div>
@@ -116,20 +188,49 @@
             const clearBtn = document.getElementById('clear-btn');
             const progressContainer = document.getElementById('progress-container');
             const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const progressStatus = document.getElementById('progress-status');
             const uploadResults = document.getElementById('upload-results');
+            const errorContainer = document.getElementById('error-container');
+            const errorContent = document.getElementById('error-content');
+            const totalFilesElement = document.getElementById('total-files');
+            const totalSizeElement = document.getElementById('total-size');
+            const uploadSpeedElement = document.getElementById('upload-speed');
+            const timeRemainingElement = document.getElementById('time-remaining');
+            const storageUsedBar = document.getElementById('storage-used-bar');
+            const storagePercentage = document.getElementById('storage-percentage');
+            const storageUsed = document.getElementById('storage-used');
+            const storageTotal = document.getElementById('storage-total');
 
             let selectedFilesList = [];
+            let uploadStartTime = null;
+            let uploadInterval = null;
+
+            // Fetch storage info on load
+            fetchStorageInfo();
+
+            // Drag and drop handlers
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
 
             dropZone.addEventListener('click', () => fileInput.click());
             
-            dropZone.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                dropZone.classList.add('border-blue-400');
+            dropZone.addEventListener('dragover', function() {
+                dropZone.classList.add('drag-over');
+            });
+            
+            dropZone.addEventListener('dragleave', function() {
+                dropZone.classList.remove('drag-over');
             });
             
             dropZone.addEventListener('drop', function(e) {
-                e.preventDefault();
-                dropZone.classList.remove('border-blue-400');
+                dropZone.classList.remove('drag-over');
                 const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
                 handleFiles(files);
             });
@@ -143,10 +244,20 @@
                 selectedFilesList = [];
                 updateFileList();
                 uploadResults.classList.add('hidden');
+                errorContainer.classList.add('hidden');
             });
 
             function handleFiles(files) {
-                selectedFilesList = files;
+                // Check file sizes (max 100MB)
+                const oversizedFiles = files.filter(f => f.size > 100 * 1024 * 1024);
+                
+                if (oversizedFiles.length > 0) {
+                    alert(`Some files exceed the 100MB limit:\n${oversizedFiles.map(f => f.name).join('\n')}`);
+                    // Only keep files that are within size limit
+                    files = files.filter(f => f.size <= 100 * 1024 * 1024);
+                }
+                
+                selectedFilesList = [...selectedFilesList, ...files];
                 updateFileList();
             }
 
@@ -157,15 +268,33 @@
                 }
 
                 fileList.classList.remove('hidden');
-                selectedFiles.innerHTML = selectedFilesList.map((file, index) => `
-                    <div class="flex items-center justify-between bg-white/10 rounded-lg p-3">
-                        <div class="flex items-center">
-                            <span class="text-sm text-white">${file.name}</span>
-                            <span class="text-xs text-gray-400 ml-2">(${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                
+                // Calculate total size
+                const totalSizeBytes = selectedFilesList.reduce((acc, file) => acc + file.size, 0);
+                const totalSizeMB = (totalSizeBytes / 1024 / 1024).toFixed(1);
+                
+                // Update file count and size
+                totalFilesElement.textContent = `${selectedFilesList.length} file${selectedFilesList.length !== 1 ? 's' : ''}`;
+                totalSizeElement.textContent = `${totalSizeMB} MB`;
+                
+                // Render file list
+                selectedFiles.innerHTML = selectedFilesList.map((file, index) => {
+                    const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+                    return `
+                        <div class="file-card flex items-center justify-between bg-white/10 rounded-lg p-3">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-file-image text-blue-400"></i>
+                                <div class="truncate max-w-xs">
+                                    <div class="text-sm text-white truncate">${file.name}</div>
+                                    <div class="text-xs text-gray-400">${sizeMB} MB</div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="removeFile(${index})" class="text-red-400 hover:text-red-300 transition-colors">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
-                        <button type="button" onclick="removeFile(${index})" class="text-red-400 hover:text-red-300">×</button>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             }
 
             window.removeFile = function(index) {
@@ -177,13 +306,22 @@
                 e.preventDefault();
                 
                 if (selectedFilesList.length === 0) {
-                    alert('Please select at least one image');
+                    showError('Please select at least one image');
                     return;
                 }
 
                 const categorySelect = document.getElementById('category');
                 if (!categorySelect.value) {
-                    alert('Please select a category');
+                    showError('Please select a category');
+                    return;
+                }
+
+                // Check if user has enough storage
+                const totalSizeBytes = selectedFilesList.reduce((acc, file) => acc + file.size, 0);
+                const storageAvailable = parseFloat(storageTotal.dataset.total) - parseFloat(storageUsed.dataset.used);
+                
+                if (totalSizeBytes > storageAvailable) {
+                    showError('Not enough storage space available for these files');
                     return;
                 }
 
@@ -197,46 +335,151 @@
                 uploadBtn.disabled = true;
                 document.getElementById('upload-text').textContent = 'Uploading...';
                 progressContainer.classList.remove('hidden');
+                errorContainer.classList.add('hidden');
+                
+                // Start tracking upload progress
+                uploadStartTime = Date.now();
+                updateProgress(0, 'Starting upload...');
+                
+                if (uploadInterval) clearInterval(uploadInterval);
+                uploadInterval = setInterval(updateUploadStats, 1000);
 
                 try {
-                    const response = await fetch('/upload/images', {
-                        method: 'POST',
-                        body: formData
+                    const xhr = new XMLHttpRequest();
+                    
+                    // Track upload progress
+                    xhr.upload.addEventListener('progress', function(e) {
+                        if (e.lengthComputable) {
+                            const percentComplete = (e.loaded / e.total) * 100;
+                            updateProgress(percentComplete, 'Uploading...');
+                        }
                     });
+                    
+                    xhr.addEventListener('load', function() {
+                        clearInterval(uploadInterval);
+                        
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                const result = JSON.parse(xhr.responseText);
+                                handleUploadSuccess(result);
+                            } catch (error) {
+                                showError('Failed to parse server response');
+                            }
+                        } else {
+                            try {
+                                const error = JSON.parse(xhr.responseText);
+                                showError(error.error || `Upload failed with status ${xhr.status}`);
+                            } catch (error) {
+                                showError(`Upload failed with status ${xhr.status}`);
+                            }
+                        }
+                    });
+                    
+                    xhr.addEventListener('error', function() {
+                        clearInterval(uploadInterval);
+                        showError('Network error occurred during upload');
+                    });
+                    
+                    xhr.open('POST', '/upload/images');
+                    xhr.send(formData);
 
-                    const result = await response.json();
-
-                    if (response.ok) {
-                        alert(`Successfully uploaded ${result.images.length} image(s)`);
-                        showResults(result.images);
-                        form.reset();
-                        selectedFilesList = [];
-                        updateFileList();
-                    } else {
-                        alert(result.error || 'Upload failed');
-                    }
                 } catch (error) {
-                    alert('Upload failed due to network error');
-                } finally {
+                    clearInterval(uploadInterval);
+                    showError('Upload failed due to unexpected error');
+                }
+            });
+
+            function updateProgress(percent, status) {
+                progressBar.style.width = percent + '%';
+                progressText.textContent = Math.round(percent) + '%';
+                progressStatus.textContent = status;
+            }
+
+            function updateUploadStats() {
+                if (!uploadStartTime) return;
+                
+                const elapsedTime = (Date.now() - uploadStartTime) / 1000; // in seconds
+                const loaded = parseFloat(progressText.textContent) / 100;
+                
+                if (loaded > 0 && elapsedTime > 0) {
+                    const totalSize = selectedFilesList.reduce((acc, file) => acc + file.size, 0);
+                    const loadedSize = totalSize * loaded;
+                    const speed = loadedSize / elapsedTime; // bytes per second
+                    
+                    // Calculate speed in appropriate units
+                    let speedText;
+                    if (speed > 1024 * 1024) {
+                        speedText = (speed / (1024 * 1024)).toFixed(1) + ' MB/s';
+                    } else if (speed > 1024) {
+                        speedText = (speed / 1024).toFixed(1) + ' KB/s';
+                    } else {
+                        speedText = speed.toFixed(0) + ' B/s';
+                    }
+                    
+                    uploadSpeedElement.textContent = speedText;
+                    
+                    // Calculate time remaining
+                    if (loaded > 0) {
+                        const remainingSize = totalSize - loadedSize;
+                        const timeRemaining = remainingSize / speed;
+                        
+                        if (timeRemaining < 60) {
+                            timeRemainingElement.textContent = Math.ceil(timeRemaining) + 's remaining';
+                        } else if (timeRemaining < 3600) {
+                            timeRemainingElement.textContent = Math.ceil(timeRemaining / 60) + 'm remaining';
+                        } else {
+                            timeRemainingElement.textContent = Math.ceil(timeRemaining / 3600) + 'h remaining';
+                        }
+                    }
+                }
+            }
+
+            function handleUploadSuccess(result) {
+                updateProgress(100, 'Upload complete!');
+                
+                setTimeout(() => {
                     uploadBtn.disabled = false;
                     document.getElementById('upload-text').textContent = 'Upload Images';
                     progressContainer.classList.add('hidden');
-                    progressBar.style.width = '0%';
-                }
-            });
+                    
+                    if (result.images && result.images.length > 0) {
+                        showResults(result.images);
+                        // Refresh storage info
+                        fetchStorageInfo();
+                    }
+                    
+                    if (result.errors && result.errors.length > 0) {
+                        showError(result.errors.join('<br>'));
+                    }
+                }, 1000);
+            }
+
+            function showError(message) {
+                errorContent.innerHTML = message;
+                errorContainer.classList.remove('hidden');
+                uploadBtn.disabled = false;
+                document.getElementById('upload-text').textContent = 'Upload Images';
+                progressContainer.classList.add('hidden');
+            }
 
             function showResults(images) {
                 const content = document.getElementById('results-content');
                 content.innerHTML = `
+                    <p class="text-green-300 mb-4">Successfully uploaded ${images.length} image${images.length !== 1 ? 's' : ''}</p>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         ${images.map(image => `
                             <div class="bg-white/10 rounded-lg p-4">
                                 <img src="${image.filePath}" alt="${image.alt || image.originalName}" class="w-full h-32 object-cover rounded mb-2">
                                 <p class="text-sm text-white truncate">${image.originalName}</p>
                                 <p class="text-xs text-gray-400">${image.category ? image.category.name : 'Unknown'}</p>
-                                <button onclick="copyUrl('${image.filePath}')" class="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded mt-2">
-                                    Copy URL
-                                </button>
+                                <div class="flex mt-2 space-x-2">
+                                    <button onclick="copyUrl('${image.filePath}')" class="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded hover:bg-blue-500/30 transition-colors">
+                                        Copy URL
+                                    </button>
+                                    <a href="${image.filePath}" target="_blank" class="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded hover:bg-purple-500/30 transition-colors">
+                                        View
+                                    </a>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -244,10 +487,44 @@
                 uploadResults.classList.remove('hidden');
             }
 
+            async function fetchStorageInfo() {
+                try {
+                    const response = await fetch('/api/storage');
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        // Update storage bar
+                        const percentage = (data.used / data.total) * 100;
+                        storageUsedBar.style.width = `${percentage}%`;
+                        storagePercentage.textContent = `${percentage.toFixed(1)}%`;
+                        
+                        // Update text values
+                        const usedMB = (data.used / (1024 * 1024)).toFixed(1);
+                        const totalGB = (data.total / (1024 * 1024 * 1024)).toFixed(1);
+                        
+                        storageUsed.textContent = `${usedMB} MB`;
+                        storageUsed.dataset.used = data.used;
+                        
+                        storageTotal.textContent = `${totalGB} GB`;
+                        storageTotal.dataset.total = data.total;
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch storage info:', error);
+                }
+            }
+
             window.copyUrl = function(path) {
                 const url = window.location.origin + path;
                 navigator.clipboard.writeText(url).then(() => {
-                    alert('URL copied to clipboard');
+                    // Show temporary feedback
+                    const button = event.target;
+                    const originalText = button.textContent;
+                    button.textContent = 'Copied!';
+                    button.classList.add('bg-green-500/20', 'text-green-300');
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.classList.remove('bg-green-500/20', 'text-green-300');
+                    }, 2000);
                 }).catch(() => {
                     alert('Failed to copy URL');
                 });
