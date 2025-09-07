@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
+    <title>Image Uploader</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -43,6 +43,147 @@
             0% { opacity: 1; }
             50% { opacity: 0.7; }
             100% { opacity: 1; }
+        }
+        
+        /* Custom spinner */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            position: relative;
+            margin: 0 auto;
+        }
+        .spinner .dot {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        .spinner .dot:before {
+            content: '';
+            display: block;
+            width: 15%;
+            height: 15%;
+            background-color: #8b5cf6;
+            border-radius: 100%;
+            animation: spinner-bounce 1.2s infinite ease-in-out both;
+        }
+        .spinner .dot:nth-child(1) { transform: rotate(30deg); }
+        .spinner .dot:nth-child(2) { transform: rotate(60deg); }
+        .spinner .dot:nth-child(3) { transform: rotate(90deg); }
+        .spinner .dot:nth-child(4) { transform: rotate(120deg); }
+        .spinner .dot:nth-child(5) { transform: rotate(150deg); }
+        .spinner .dot:nth-child(6) { transform: rotate(180deg); }
+        .spinner .dot:nth-child(7) { transform: rotate(210deg); }
+        .spinner .dot:nth-child(8) { transform: rotate(240deg); }
+        .spinner .dot:nth-child(9) { transform: rotate(270deg); }
+        .spinner .dot:nth-child(10) { transform: rotate(300deg); }
+        .spinner .dot:nth-child(11) { transform: rotate(330deg); }
+        .spinner .dot:nth-child(1):before { animation-delay: -1.1s; }
+        .spinner .dot:nth-child(2):before { animation-delay: -1.0s; }
+        .spinner .dot:nth-child(3):before { animation-delay: -0.9s; }
+        .spinner .dot:nth-child(4):before { animation-delay: -0.8s; }
+        .spinner .dot:nth-child(5):before { animation-delay: -0.7s; }
+        .spinner .dot:nth-child(6):before { animation-delay: -0.6s; }
+        .spinner .dot:nth-child(7):before { animation-delay: -0.5s; }
+        .spinner .dot:nth-child(8):before { animation-delay: -0.4s; }
+        .spinner .dot:nth-child(9):before { animation-delay: -0.3s; }
+        .spinner .dot:nth-child(10):before { animation-delay: -0.2s; }
+        .spinner .dot:nth-child(11):before { animation-delay: -0.1s; }
+        
+        @keyframes spinner-bounce {
+            0%, 80%, 100% { 
+                transform: scale(0);
+            } 40% { 
+                transform: scale(1.0);
+            }
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal {
+            background: #1a1a3e;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: translateY(-50px);
+            transition: transform 0.4s ease;
+            overflow: hidden;
+        }
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        /* Upload status indicators */
+        .upload-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .status-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            border-top: 2px solid #8b5cf6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status-success {
+            color: #10b981;
+        }
+        .status-error {
+            color: #ef4444;
         }
     </style>
 </head>
@@ -85,15 +226,11 @@
                         <label for="category" class="block text-sm font-medium text-gray-300 mb-2">Category *</label>
                         <select id="category" name="category" required class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none">
                             <option value="">Select a category...</option>
-                            <% if (categories && categories.length > 0) { %>
-                                <% categories.forEach(category => { %>
-                                    <option value="<%= category._id %>"><%= category.name %></option>
-                                <% }); %>
-                            <% } %>
+                            <option value="1">Nature</option>
+                            <option value="2">Portraits</option>
+                            <option value="3">Abstract</option>
                         </select>
-                        <% if (!categories || categories.length === 0) { %>
-                            <p class="text-yellow-400 text-sm mt-2">⚠️ You need to create a category first. <a href="/dashboard/categories" class="text-blue-400 hover:underline">Create one here</a>.</p>
-                        <% } %>
+                        <p class="text-yellow-400 text-sm mt-2">⚠️ You need to create a category first. <a href="/dashboard/categories" class="text-blue-400 hover:underline">Create one here</a>.</p>
                     </div>
 
                     <div>
@@ -106,7 +243,7 @@
                             <p class="text-sm text-gray-500">Supports: JPG, PNG, GIF, WebP, BMP, TIFF (Max: 100MB each)</p>
                             <input type="file" id="image-files" name="imageFiles" multiple accept="image/*" class="hidden">
                         </div>
-                        <div id="file-list" class="mt-4 space-y-2 hidden">
+                        <div id="file-list" class="mt-4 space-y-2">
                             <p class="text-sm text-gray-300 font-medium">Selected files:</p>
                             <div id="selected-files" class="space-y-2"></div>
                             <div class="flex justify-between text-xs text-gray-400 mt-2">
@@ -143,36 +280,29 @@
                         </button>
                     </div>
 
-                    <div id="progress-container" class="hidden">
-                        <div class="flex justify-between text-sm text-gray-300 mb-2">
-                            <span id="progress-status">Preparing upload...</span>
-                            <span id="progress-text">0%</span>
-                        </div>
-                        <div class="w-full bg-white/10 rounded-full h-2.5">
-                            <div id="progress-bar" class="bg-gradient-to-r from-pink-500 to-purple-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
-                        </div>
-                        <div class="text-xs text-gray-400 mt-2 flex justify-between">
-                            <span id="upload-speed">-</span>
-                            <span id="time-remaining">-</span>
-                        </div>
+                    <div id="upload-status-container" class="space-y-3 hidden">
+                        <h3 class="text-sm font-medium text-gray-300">Upload Progress</h3>
+                        <div id="file-progress-container"></div>
                     </div>
                 </form>
             </div>
+        </div>
+    </div>
 
-            <div id="upload-results" class="hidden bg-white/5 backdrop-blur-lg border border-white/20 rounded-xl p-6">
-                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
-                    <i class="fas fa-check-circle text-green-400 mr-2"></i>
-                    Upload Results
-                </h2>
-                <div id="results-content"></div>
+    <!-- Modal Template -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="text-xl font-bold" id="modal-title">Modal Title</h2>
+                <button class="modal-close">&times;</button>
             </div>
-
-            <div id="error-container" class="hidden bg-red-500/10 backdrop-blur-lg border border-red-500/20 rounded-xl p-6">
-                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
-                    <i class="fas fa-exclamation-circle text-red-400 mr-2"></i>
-                    Upload Failed
-                </h2>
-                <div id="error-content" class="text-red-300"></div>
+            <div class="modal-body">
+                <p id="modal-message">Modal message goes here.</p>
+                <div id="modal-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700" id="modal-cancel">Cancel</button>
+                <button class="px-4 py-2 bg-purple-600 rounded hover:bg-purple-700" id="modal-confirm">Confirm</button>
             </div>
         </div>
     </div>
@@ -186,28 +316,29 @@
             const selectedFiles = document.getElementById('selected-files');
             const uploadBtn = document.getElementById('upload-btn');
             const clearBtn = document.getElementById('clear-btn');
-            const progressContainer = document.getElementById('progress-container');
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
-            const progressStatus = document.getElementById('progress-status');
-            const uploadResults = document.getElementById('upload-results');
-            const errorContainer = document.getElementById('error-container');
-            const errorContent = document.getElementById('error-content');
+            const uploadStatusContainer = document.getElementById('upload-status-container');
+            const fileProgressContainer = document.getElementById('file-progress-container');
             const totalFilesElement = document.getElementById('total-files');
             const totalSizeElement = document.getElementById('total-size');
-            const uploadSpeedElement = document.getElementById('upload-speed');
-            const timeRemainingElement = document.getElementById('time-remaining');
             const storageUsedBar = document.getElementById('storage-used-bar');
             const storagePercentage = document.getElementById('storage-percentage');
             const storageUsed = document.getElementById('storage-used');
             const storageTotal = document.getElementById('storage-total');
+            
+            // Modal elements
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalMessage = document.getElementById('modal-message');
+            const modalContent = document.getElementById('modal-content');
+            const modalCancel = document.getElementById('modal-cancel');
+            const modalConfirm = document.getElementById('modal-confirm');
+            const modalClose = document.querySelector('.modal-close');
 
             let selectedFilesList = [];
-            let uploadStartTime = null;
-            let uploadInterval = null;
+            let uploadsInProgress = 0;
 
-            // Fetch storage info on load
-            fetchStorageInfo();
+            // Initialize storage info with mock data
+            updateStorageInfo(1024 * 1024 * 512, 1024 * 1024 * 1024 * 10); // 512MB used of 10GB
 
             // Drag and drop handlers
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -240,11 +371,18 @@
             });
 
             clearBtn.addEventListener('click', function() {
-                form.reset();
-                selectedFilesList = [];
-                updateFileList();
-                uploadResults.classList.add('hidden');
-                errorContainer.classList.add('hidden');
+                showModal(
+                    'Clear Form', 
+                    'Are you sure you want to clear all selected files and form data?',
+                    'confirm',
+                    () => {
+                        form.reset();
+                        selectedFilesList = [];
+                        updateFileList();
+                        uploadStatusContainer.classList.add('hidden');
+                        fileProgressContainer.innerHTML = '';
+                    }
+                );
             });
 
             function handleFiles(files) {
@@ -252,7 +390,11 @@
                 const oversizedFiles = files.filter(f => f.size > 100 * 1024 * 1024);
                 
                 if (oversizedFiles.length > 0) {
-                    alert(`Some files exceed the 100MB limit:\n${oversizedFiles.map(f => f.name).join('\n')}`);
+                    showModal(
+                        'File Too Large', 
+                        `The following files exceed the 100MB limit:\n${oversizedFiles.map(f => f.name).join('\n')}\n\nThese files will not be uploaded.`,
+                        'alert'
+                    );
                     // Only keep files that are within size limit
                     files = files.filter(f => f.size <= 100 * 1024 * 1024);
                 }
@@ -306,13 +448,13 @@
                 e.preventDefault();
                 
                 if (selectedFilesList.length === 0) {
-                    showError('Please select at least one image');
+                    showModal('No Files Selected', 'Please select at least one image to upload.', 'alert');
                     return;
                 }
 
                 const categorySelect = document.getElementById('category');
                 if (!categorySelect.value) {
-                    showError('Please select a category');
+                    showModal('Category Required', 'Please select a category for your images.', 'alert');
                     return;
                 }
 
@@ -321,214 +463,163 @@
                 const storageAvailable = parseFloat(storageTotal.dataset.total) - parseFloat(storageUsed.dataset.used);
                 
                 if (totalSizeBytes > storageAvailable) {
-                    showError('Not enough storage space available for these files');
+                    showModal('Insufficient Storage', 'You do not have enough storage space available for these files.', 'alert');
                     return;
                 }
 
-                const formData = new FormData();
-                selectedFilesList.forEach(file => formData.append('imageFiles', file));
-                formData.append('category', categorySelect.value);
-                formData.append('tags', document.getElementById('tags').value);
-                formData.append('alt', document.getElementById('alt').value);
-                formData.append('description', document.getElementById('description').value);
-
-                uploadBtn.disabled = true;
-                document.getElementById('upload-text').textContent = 'Uploading...';
-                progressContainer.classList.remove('hidden');
-                errorContainer.classList.add('hidden');
-                
-                // Start tracking upload progress
-                uploadStartTime = Date.now();
-                updateProgress(0, 'Starting upload...');
-                
-                if (uploadInterval) clearInterval(uploadInterval);
-                uploadInterval = setInterval(updateUploadStats, 1000);
-
-                try {
-                    const xhr = new XMLHttpRequest();
-                    
-                    // Track upload progress
-                    xhr.upload.addEventListener('progress', function(e) {
-                        if (e.lengthComputable) {
-                            const percentComplete = (e.loaded / e.total) * 100;
-                            updateProgress(percentComplete, 'Uploading...');
-                        }
-                    });
-                    
-                    xhr.addEventListener('load', function() {
-                        clearInterval(uploadInterval);
-                        
-                        if (xhr.status >= 200 && xhr.status < 300) {
-                            try {
-                                const result = JSON.parse(xhr.responseText);
-                                handleUploadSuccess(result);
-                            } catch (error) {
-                                showError('Failed to parse server response');
-                            }
-                        } else {
-                            try {
-                                const error = JSON.parse(xhr.responseText);
-                                showError(error.error || `Upload failed with status ${xhr.status}`);
-                            } catch (error) {
-                                showError(`Upload failed with status ${xhr.status}`);
-                            }
-                        }
-                    });
-                    
-                    xhr.addEventListener('error', function() {
-                        clearInterval(uploadInterval);
-                        showError('Network error occurred during upload');
-                    });
-                    
-                    xhr.open('POST', '/upload/images');
-                    xhr.send(formData);
-
-                } catch (error) {
-                    clearInterval(uploadInterval);
-                    showError('Upload failed due to unexpected error');
-                }
+                // Show upload confirmation modal
+                showModal(
+                    'Confirm Upload', 
+                    `You are about to upload ${selectedFilesList.length} file${selectedFilesList.length !== 1 ? 's' : ''} (${totalSizeElement.textContent}). Do you want to continue?`,
+                    'confirm',
+                    startUpload
+                );
             });
 
-            function updateProgress(percent, status) {
-                progressBar.style.width = percent + '%';
-                progressText.textContent = Math.round(percent) + '%';
-                progressStatus.textContent = status;
-            }
-
-            function updateUploadStats() {
-                if (!uploadStartTime) return;
+            function startUpload() {
+                uploadBtn.disabled = true;
+                document.getElementById('upload-text').textContent = 'Uploading...';
+                uploadStatusContainer.classList.remove('hidden');
                 
-                const elapsedTime = (Date.now() - uploadStartTime) / 1000; // in seconds
-                const loaded = parseFloat(progressText.textContent) / 100;
-                
-                if (loaded > 0 && elapsedTime > 0) {
-                    const totalSize = selectedFilesList.reduce((acc, file) => acc + file.size, 0);
-                    const loadedSize = totalSize * loaded;
-                    const speed = loadedSize / elapsedTime; // bytes per second
-                    
-                    // Calculate speed in appropriate units
-                    let speedText;
-                    if (speed > 1024 * 1024) {
-                        speedText = (speed / (1024 * 1024)).toFixed(1) + ' MB/s';
-                    } else if (speed > 1024) {
-                        speedText = (speed / 1024).toFixed(1) + ' KB/s';
-                    } else {
-                        speedText = speed.toFixed(0) + ' B/s';
-                    }
-                    
-                    uploadSpeedElement.textContent = speedText;
-                    
-                    // Calculate time remaining
-                    if (loaded > 0) {
-                        const remainingSize = totalSize - loadedSize;
-                        const timeRemaining = remainingSize / speed;
-                        
-                        if (timeRemaining < 60) {
-                            timeRemainingElement.textContent = Math.ceil(timeRemaining) + 's remaining';
-                        } else if (timeRemaining < 3600) {
-                            timeRemainingElement.textContent = Math.ceil(timeRemaining / 60) + 'm remaining';
-                        } else {
-                            timeRemainingElement.textContent = Math.ceil(timeRemaining / 3600) + 'h remaining';
-                        }
-                    }
-                }
-            }
-
-            function handleUploadSuccess(result) {
-                updateProgress(100, 'Upload complete!');
-                
-                setTimeout(() => {
-                    uploadBtn.disabled = false;
-                    document.getElementById('upload-text').textContent = 'Upload Images';
-                    progressContainer.classList.add('hidden');
-                    
-                    if (result.images && result.images.length > 0) {
-                        showResults(result.images);
-                        // Refresh storage info
-                        fetchStorageInfo();
-                    }
-                    
-                    if (result.errors && result.errors.length > 0) {
-                        showError(result.errors.join('<br>'));
-                    }
-                }, 1000);
-            }
-
-            function showError(message) {
-                errorContent.innerHTML = message;
-                errorContainer.classList.remove('hidden');
-                uploadBtn.disabled = false;
-                document.getElementById('upload-text').textContent = 'Upload Images';
-                progressContainer.classList.add('hidden');
-            }
-
-            function showResults(images) {
-                const content = document.getElementById('results-content');
-                content.innerHTML = `
-                    <p class="text-green-300 mb-4">Successfully uploaded ${images.length} image${images.length !== 1 ? 's' : ''}</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        ${images.map(image => `
-                            <div class="bg-white/10 rounded-lg p-4">
-                                <img src="${image.filePath}" alt="${image.alt || image.originalName}" class="w-full h-32 object-cover rounded mb-2">
-                                <p class="text-sm text-white truncate">${image.originalName}</p>
-                                <p class="text-xs text-gray-400">${image.category ? image.category.name : 'Unknown'}</p>
-                                <div class="flex mt-2 space-x-2">
-                                    <button onclick="copyUrl('${image.filePath}')" class="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded hover:bg-blue-500/30 transition-colors">
-                                        Copy URL
-                                    </button>
-                                    <a href="${image.filePath}" target="_blank" class="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded hover:bg-purple-500/30 transition-colors">
-                                        View
-                                    </a>
+                // Create progress indicators for each file
+                fileProgressContainer.innerHTML = '';
+                selectedFilesList.forEach((file, index) => {
+                    const progressHtml = `
+                        <div class="upload-status" id="file-${index}">
+                            <div class="status-spinner"></div>
+                            <div class="flex-1">
+                                <div class="text-sm truncate">${file.name}</div>
+                                <div class="flex items-center gap-3 mt-1">
+                                    <div class="w-full bg-white/10 rounded-full h-1.5">
+                                        <div class="bg-gradient-to-r from-pink-500 to-purple-600 h-1.5 rounded-full progress-bar" style="width: 0%" id="progress-bar-${index}"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-400" id="progress-text-${index}">0%</span>
                                 </div>
                             </div>
-                        `).join('')}
-                    </div>
-                `;
-                uploadResults.classList.remove('hidden');
-            }
+                        </div>
+                    `;
+                    fileProgressContainer.innerHTML += progressHtml;
+                });
 
-            async function fetchStorageInfo() {
-                try {
-                    const response = await fetch('/api/storage');
-                    if (response.ok) {
-                        const data = await response.json();
-                        
-                        // Update storage bar
-                        const percentage = (data.used / data.total) * 100;
-                        storageUsedBar.style.width = `${percentage}%`;
-                        storagePercentage.textContent = `${percentage.toFixed(1)}%`;
-                        
-                        // Update text values
-                        const usedMB = (data.used / (1024 * 1024)).toFixed(1);
-                        const totalGB = (data.total / (1024 * 1024 * 1024)).toFixed(1);
-                        
-                        storageUsed.textContent = `${usedMB} MB`;
-                        storageUsed.dataset.used = data.used;
-                        
-                        storageTotal.textContent = `${totalGB} GB`;
-                        storageTotal.dataset.total = data.total;
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch storage info:', error);
-                }
-            }
-
-            window.copyUrl = function(path) {
-                const url = window.location.origin + path;
-                navigator.clipboard.writeText(url).then(() => {
-                    // Show temporary feedback
-                    const button = event.target;
-                    const originalText = button.textContent;
-                    button.textContent = 'Copied!';
-                    button.classList.add('bg-green-500/20', 'text-green-300');
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                        button.classList.remove('bg-green-500/20', 'text-green-300');
-                    }, 2000);
-                }).catch(() => {
-                    alert('Failed to copy URL');
+                // Simulate file uploads (in a real app, this would be actual AJAX requests)
+                selectedFilesList.forEach((file, index) => {
+                    simulateFileUpload(file, index);
                 });
             }
+
+            function simulateFileUpload(file, index) {
+                uploadsInProgress++;
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.random() * 15;
+                    if (progress >= 100) {
+                        progress = 100;
+                        clearInterval(interval);
+                        uploadsInProgress--;
+                        
+                        // Update UI for completed upload
+                        document.getElementById(`progress-bar-${index}`).style.width = '100%';
+                        document.getElementById(`progress-text-${index}`).textContent = '100%';
+                        const statusElement = document.getElementById(`file-${index}`);
+                        statusElement.querySelector('.status-spinner').classList.add('hidden');
+                        
+                        // Add success indicator
+                        const successIcon = document.createElement('i');
+                        successIcon.className = 'fas fa-check-circle status-success';
+                        statusElement.querySelector('.status-spinner').parentNode.appendChild(successIcon);
+                        
+                        // If all uploads are complete
+                        if (uploadsInProgress === 0) {
+                            setTimeout(() => {
+                                showModal(
+                                    'Upload Complete', 
+                                    `Successfully uploaded ${selectedFilesList.length} file${selectedFilesList.length !== 1 ? 's' : ''}.`,
+                                    'success',
+                                    () => {
+                                        form.reset();
+                                        selectedFilesList = [];
+                                        updateFileList();
+                                        uploadStatusContainer.classList.add('hidden');
+                                        uploadBtn.disabled = false;
+                                        document.getElementById('upload-text').textContent = 'Upload Images';
+                                        
+                                        // Update storage info (mock)
+                                        const newUsed = parseFloat(storageUsed.dataset.used) + (1024 * 1024 * 50); // Add 50MB
+                                        updateStorageInfo(newUsed, parseFloat(storageTotal.dataset.total));
+                                    }
+                                );
+                            }, 500);
+                        }
+                    } else {
+                        // Update progress
+                        document.getElementById(`progress-bar-${index}`).style.width = `${progress}%`;
+                        document.getElementById(`progress-text-${index}`).textContent = `${Math.round(progress)}%`;
+                    }
+                }, 300 + Math.random() * 400);
+            }
+
+            function updateStorageInfo(usedBytes, totalBytes) {
+                // Update storage bar
+                const percentage = (usedBytes / totalBytes) * 100;
+                storageUsedBar.style.width = `${percentage}%`;
+                storagePercentage.textContent = `${percentage.toFixed(1)}%`;
+                
+                // Update text values
+                const usedMB = (usedBytes / (1024 * 1024)).toFixed(1);
+                const totalGB = (totalBytes / (1024 * 1024 * 1024)).toFixed(1);
+                
+                storageUsed.textContent = `${usedMB} MB`;
+                storageUsed.dataset.used = usedBytes;
+                
+                storageTotal.textContent = `${totalGB} GB`;
+                storageTotal.dataset.total = totalBytes;
+            }
+
+            // Modal functions
+            function showModal(title, message, type, confirmCallback = null) {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                
+                // Clear previous content
+                modalContent.innerHTML = '';
+                
+                // Set modal type
+                if (type === 'alert') {
+                    modalConfirm.classList.add('hidden');
+                    modalCancel.textContent = 'OK';
+                } else if (type === 'confirm') {
+                    modalConfirm.classList.remove('hidden');
+                    modalCancel.textContent = 'Cancel';
+                } else if (type === 'success') {
+                    modalConfirm.classList.add('hidden');
+                    modalCancel.textContent = 'OK';
+                    modalContent.innerHTML = '<div class="text-center py-4"><i class="fas fa-check-circle text-green-400 text-5xl"></i></div>';
+                }
+                
+                // Set up event listeners
+                modalCancel.onclick = () => {
+                    hideModal();
+                };
+                
+                modalConfirm.onclick = () => {
+                    hideModal();
+                    if (confirmCallback) confirmCallback();
+                };
+                
+                modalClose.onclick = hideModal;
+                
+                // Show modal
+                modal.classList.add('active');
+            }
+            
+            function hideModal() {
+                modal.classList.remove('active');
+            }
+            
+            // Close modal when clicking outside
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) hideModal();
+            });
         });
     </script>
 </body>
