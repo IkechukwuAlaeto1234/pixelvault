@@ -188,16 +188,14 @@ router.get('/logout', (req, res) => {
 // POST Logout (for forms) - with user feedback
 router.post('/logout', (req, res) => {
   const username = req.session.username || 'User';
-  
-  req.session.destroy((err) => {
+
+  req.session.destroy(err => {
     if (err) {
       console.error('Logout error:', err);
+      return res.redirect('/');
     }
-    res.clearCookie('connect.sid'); // Clear the session cookie
-    
-    // For POST logout, we can't easily pass a message to the login page
-    // So we'll redirect with a query parameter instead
-    res.redirect('/login?logout=success');
+    // Correctly redirect with a query parameter that includes the username
+    res.redirect(`/login?logout=success&username=${encodeURIComponent(username)}`);
   });
 });
 
