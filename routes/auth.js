@@ -25,28 +25,17 @@ const redirectIfAuth = (req, res, next) => {
 router.get('/login', redirectIfAuth, (req, res) => {
   res.render('auth/login', {
     error: null,
-    message: null, // We'll handle logout messages via JavaScript now
+    message: null,
     title: 'Login - PixelVault'
   });
 });
 
-// Register page (only for initial setup)
-router.get('/register', async (req, res) => {
-  try {
-    // Check if any users exist
-    const userCount = await User.countDocuments();
-    if (userCount > 0) {
-      return res.redirect('/login');
-    }
-   
-    res.render('auth/register', {
-      error: null,
-      title: 'Setup Account - PixelVault'
-    });
-  } catch (error) {
-    console.error('Register page error:', error);
-    res.redirect('/login');
-  }
+// Register page (open for everyone)
+router.get('/register', redirectIfAuth, (req, res) => {
+  res.render('auth/register', {
+    error: null,
+    title: 'Create Account - PixelVault'
+  });
 });
 
 // Handle login
@@ -96,35 +85,29 @@ router.post('/login', redirectIfAuth, async (req, res) => {
   }
 });
 
-// Handle registration (only for initial setup)
-router.post('/register', async (req, res) => {
+// Handle registration (open for everyone)
+router.post('/register', redirectIfAuth, async (req, res) => {
   const { username, email, password, confirmPassword } = req.body;
  
   try {
-    // Check if any users exist
-    const userCount = await User.countDocuments();
-    if (userCount > 0) {
-      return res.redirect('/login');
-    }
-
     if (!username || !email || !password || !confirmPassword) {
       return res.render('auth/register', {
         error: 'All fields are required',
-        title: 'Setup Account - PixelVault'
+        title: 'Create Account - PixelVault'
       });
     }
  
     if (password !== confirmPassword) {
       return res.render('auth/register', {
         error: 'Passwords do not match',
-        title: 'Setup Account - PixelVault'
+        title: 'Create Account - PixelVault'
       });
     }
 
     if (password.length < 6) {
       return res.render('auth/register', {
         error: 'Password must be at least 6 characters long',
-        title: 'Setup Account - PixelVault'
+        title: 'Create Account - PixelVault'
       });
     }
    
@@ -163,7 +146,7 @@ router.post('/register', async (req, res) => {
    
     res.render('auth/register', {
       error: errorMessage,
-      title: 'Setup Account - PixelVault'
+      title: 'Create Account - PixelVault'
     });
   }
 });
