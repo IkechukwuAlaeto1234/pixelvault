@@ -1,226 +1,157 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs').promises;
-const { Category, Image } = require('../models');
+const fs = require('fs');
+const { Image, Category, User } = require('../models');
 const { requireAuth } = require('./auth');
 const router = express.Router();
 
-// Apply authentication middleware
-router.use(requireAuth);
-
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: async function (req, file, cb) {
-    const uploadPath = path.join(__dirname, '..', 'public', 'uploads', 'images');
-    try {
-      await fs.mkdir(uploadPath, { recursive: true });
-      cb(null, uploadPath);
-    } catch (error) {
-      cb(error);
+  destination: function (req, file, cb) {
+    const uploadDir = 'public/uploads';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    // Generate unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    const filename = `image-${uniqueSuffix}${ext}`;
-    cb(null, filename);
+    cb(null, req.session.userId + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
 const fileFilter = (req, file, cb) => {
-  // Accept only image files
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
-    cb(new Error('Only image files are allowed'), false);
+    cb(new Error('Only image files are allowed!'), false);
   }
 };
 
 const upload = multer({
   storage: storage,
-  fileFilter: fileFilter,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit (increased from 10MB)
-    files: 10 // Maximum 10 files at once
+    fileSize: 100 * 1024 * 1024 // 100MB limit
+  },
+  fileFilter: fileFilter
+});
+
+// Get upload page
+router.get('/upload', requireAuth, async (req, res) => {
+  try {
+    const categories = await Category.find({ userId: req.session.userId });
+    const user = await User.findById(req.session.userId);
+    
+    // Calculate storage usage
+    const userImages = await Image.find({ userId: req.session.userId });
+    const totalSize = userImages.reduce((sum, img) => sum + img.fileSize, 0);
+    const storageLimit = 10 * 1024 * 1024 * 1024; // 10GB
+    const storageUsed = totalSize;
+    const storagePercentage = ((storageUsed / storageLimit) * 100).toFixed(1);
+
+    res.render('upload', {
+      title: 'Upload Images - PixelVault',
+      categories,
+      storageUsed,
+      storageLimit,
+      storagePercentage,
+      user,
+      error: null,
+      message: req.query.message || null
+    });
+  } catch (error) {
+    console.error('Upload page error:', error);
+    res.redirect('/dashboard?error=Failed to load upload page');
   }
 });
 
-// Handle multiple image uploads
-router.post('/images', upload.array('imageFiles', 10), async (req, res) => {
+// Handle file upload
+router.post('/upload', requireAuth, upload.array('imageFiles', 50), async (req, res) => {
   try {
+    if (!req.files || req.files.length === 0) {
+      return res.redirect('/dashboard/upload?error=No files selected');
+    }
+
     const { category, tags, alt, description } = req.body;
-    const files = req.files;
-
-    if (!files || files.length === 0) {
-      return res.status(400).json({ error: 'No files uploaded' });
-    }
-
+    
     if (!category) {
-      return res.status(400).json({ error: 'Category is required' });
+      // Clean up uploaded files
+      req.files.forEach(file => {
+        fs.unlinkSync(file.path);
+      });
+      return res.redirect('/dashboard/upload?error=Category is required');
     }
 
-    // Verify category exists
-    const categoryDoc = await Category.findById(category);
-    if (!categoryDoc) {
-      return res.status(400).json({ error: 'Invalid category' });
+    // Check if category belongs to user
+    const userCategory = await Category.findOne({ 
+      _id: category, 
+      userId: req.session.userId 
+    });
+    
+    if (!userCategory) {
+      req.files.forEach(file => {
+        fs.unlinkSync(file.path);
+      });
+      return res.redirect('/dashboard/upload?error=Invalid category');
     }
 
-    // Process tags
-    const tagArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
-
-    const uploadedImages = [];
-    const errors = [];
+    // Calculate total size of new files
+    const totalNewSize = req.files.reduce((sum, file) => sum + file.size, 0);
+    
+    // Check storage limit (10GB)
+    const userImages = await Image.find({ userId: req.session.userId });
+    const currentUsage = userImages.reduce((sum, img) => sum + img.fileSize, 0);
+    const storageLimit = 10 * 1024 * 1024 * 1024;
+    
+    if (currentUsage + totalNewSize > storageLimit) {
+      req.files.forEach(file => {
+        fs.unlinkSync(file.path);
+      });
+      return res.redirect('/dashboard/upload?error=Insufficient storage space');
+    }
 
     // Process each file
-    for (const file of files) {
-      try {
-        const image = new Image({
-          originalName: file.originalname,
-          fileName: file.filename,
-          filePath: `/uploads/images/${file.filename}`,
-          mimeType: file.mimetype,
-          size: file.size,
-          category: category,
-          tags: tagArray,
-          alt: alt || '',
-          description: description || '',
-          userId: req.session.userId
-        });
-
-        await image.save();
-        
-        // Populate category for response
-        await image.populate('category', 'name');
-        
-        uploadedImages.push(image);
-      } catch (error) {
-        console.error(`Error saving image ${file.originalname}:`, error);
-        errors.push(`Failed to save ${file.originalname}: ${error.message}`);
-        
-        // Clean up file if database save failed
-        try {
-          await fs.unlink(file.path);
-        } catch (unlinkError) {
-          console.error('Error deleting file:', unlinkError);
-        }
-      }
-    }
-
-    if (uploadedImages.length === 0) {
-      return res.status(400).json({ 
-        error: 'No images were successfully uploaded',
-        details: errors
+    const uploadPromises = req.files.map(async (file) => {
+      const image = new Image({
+        userId: req.session.userId,
+        filename: file.filename,
+        originalName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        categoryId: category,
+        tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+        altText: alt || '',
+        description: description || ''
       });
-    }
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${uploadedImages.length} image(s)`,
-      images: uploadedImages,
-      errors: errors.length > 0 ? errors : undefined
+      
+      await image.save();
+      return image;
     });
 
+    await Promise.all(uploadPromises);
+
+    res.redirect('/dashboard/upload?message=Files uploaded successfully');
   } catch (error) {
     console.error('Upload error:', error);
     
     // Clean up any uploaded files on error
     if (req.files) {
-      req.files.forEach(async (file) => {
-        try {
-          await fs.unlink(file.path);
-        } catch (unlinkError) {
-          console.error('Error cleaning up file:', unlinkError);
+      req.files.forEach(file => {
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
         }
       });
     }
-
-    res.status(500).json({ error: 'Upload failed due to server error' });
+    
+    res.redirect('/dashboard/upload?error=Upload failed');
   }
 });
 
-// Delete image
-router.delete('/image/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const image = await Image.findOne({ 
-      _id: id, 
-      userId: req.session.userId 
-    });
-
-    if (!image) {
-      return res.status(404).json({ error: 'Image not found' });
-    }
-
-    // Delete file from filesystem
-    const filePath = path.join(__dirname, '..', 'public', image.filePath);
-    try {
-      await fs.unlink(filePath);
-    } catch (fileError) {
-      console.error('Error deleting file:', fileError);
-      // Continue with database deletion even if file deletion fails
-    }
-
-    // Delete from database
-    await Image.findByIdAndDelete(id);
-
-    res.json({
-      success: true,
-      message: 'Image deleted successfully'
-    });
-
-  } catch (error) {
-    console.error('Delete image error:', error);
-    res.status(500).json({ error: 'Failed to delete image' });
-  }
-});
-
-// Get image details
-router.get('/image/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const image = await Image.findOne({ 
-      _id: id, 
-      userId: req.session.userId 
-    }).populate('category', 'name');
-
-    if (!image) {
-      return res.status(404).json({ error: 'Image not found' });
-    }
-
-    res.json({
-      success: true,
-      image: image
-    });
-
-  } catch (error) {
-    console.error('Get image error:', error);
-    res.status(500).json({ error: 'Failed to get image details' });
-  }
-});
-
-// Error handling middleware for multer
-router.use((error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'File size too large. Maximum size is 100MB per file.' });
-    }
-    if (error.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({ error: 'Too many files. Maximum is 10 files per upload.' });
-    }
-    if (error.code === 'LIMIT_UNEXPECTED_FILE') {
-      return res.status(400).json({ error: 'Unexpected field name for file upload.' });
-    }
-  }
-  
-  if (error.message === 'Only image files are allowed') {
-    return res.status(400).json({ error: 'Only image files are allowed (JPG, PNG, GIF, WebP, etc.)' });
-  }
-
-  res.status(500).json({ error: 'Upload failed due to server error' });
+// Get upload progress (for future real-time progress implementation)
+router.get('/upload/progress', requireAuth, (req, res) => {
+  // This would integrate with a progress tracking system
+  res.json({ progress: 0 });
 });
 
 module.exports = router;
