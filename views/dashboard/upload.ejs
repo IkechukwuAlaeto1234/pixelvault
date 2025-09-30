@@ -3,18 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload your Image - PixelVault</title>
+    <title>Image Uploader</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- FontShare Fonts -->
+    <link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&f[]=outfit@400,500,600,700&display=swap" rel="stylesheet">
     <style>
         body {
             background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #2d1b69 100%);
             min-height: 100vh;
             color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Switzer', sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6, .font-outfit {
+            font-family: 'Outfit', sans-serif;
         }
         .glow {
-            box-shadow: 0 0 15px rgba(168, 85, 247, 0.5);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
         }
         .progress-bar {
             transition: width 0.3s ease;
@@ -28,8 +33,8 @@
         }
         #drop-zone.drag-over {
             background: rgba(255, 255, 255, 0.1);
-            border-color: #8b5cf6;
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+            border-color: #f59e0b;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
         }
         .storage-bar {
             height: 8px;
@@ -64,7 +69,7 @@
             display: block;
             width: 15%;
             height: 15%;
-            background-color: #8b5cf6;
+            background-color: #f59e0b;
             border-radius: 100%;
             animation: spinner-bounce 1.2s infinite ease-in-out both;
         }
@@ -170,8 +175,8 @@
         .status-spinner {
             width: 20px;
             height: 20px;
-            border: 2px solid rgba(139, 92, 246, 0.3);
-            border-top: 2px solid #8b5cf6;
+            border: 2px solid rgba(245, 158, 11, 0.3);
+            border-top: 2px solid #f59e0b;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -185,28 +190,86 @@
         .status-error {
             color: #ef4444;
         }
+
+        /* Color Scheme Classes */
+        .btn-yellow {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        .btn-yellow:hover {
+            background: linear-gradient(135deg, #d97706, #b45309);
+        }
+        .btn-red {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        .btn-red:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+        }
+        .btn-blue {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+        .btn-blue:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        }
+        .btn-green {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        .btn-green:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+
+        .text-yellow { color: #f59e0b; }
+        .text-red { color: #ef4444; }
+        .text-blue { color: #3b82f6; }
+        .text-green { color: #10b981; }
+
+        .bg-yellow { background-color: #f59e0b; }
+        .bg-red { background-color: #ef4444; }
+        .bg-blue { background-color: #3b82f6; }
+        .bg-green { background-color: #10b981; }
+
+        .border-yellow { border-color: #f59e0b; }
+        .border-red { border-color: #ef4444; }
+        .border-blue { border-color: #3b82f6; }
+        .border-green { border-color: #10b981; }
+
+        .gradient-yellow-red {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+        }
+        .gradient-blue-green {
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+        }
+        .gradient-multicolor {
+            background: linear-gradient(135deg, #f59e0b, #ef4444, #3b82f6, #10b981);
+            background-size: 300% 300%;
+            animation: gradientShift 4s ease infinite;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
     </style>
 </head>
 <body>
     <div class="container mx-auto px-4 py-6">
         <nav class="mb-6">
             <div class="flex flex-wrap gap-4">
-                <a href="/dashboard" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition-colors">Dashboard</a>
-                <a href="/dashboard/upload" class="px-4 py-2 bg-purple-600 rounded glow">Upload</a>
-                <a href="/dashboard/gallery" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition-colors">Gallery</a>
-                <a href="/dashboard/categories" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition-colors">Categories</a>
-                <a href="/logout" class="px-4 py-2 bg-red-600 rounded hover:bg-red-700 transition-colors ml-auto">Logout</a>
+                <a href="/dashboard" class="px-4 py-2 btn-blue rounded transition-colors font-outfit font-semibold">Dashboard</a>
+                <a href="/dashboard/upload" class="px-4 py-2 btn-yellow rounded glow font-outfit font-semibold">Upload</a>
+                <a href="/dashboard/gallery" class="px-4 py-2 btn-blue rounded transition-colors font-outfit font-semibold">Gallery</a>
+                <a href="/dashboard/categories" class="px-4 py-2 btn-blue rounded transition-colors font-outfit font-semibold">Categories</a>
+                <a href="/logout" class="px-4 py-2 btn-red rounded transition-colors font-outfit font-semibold ml-auto">Logout</a>
             </div>
         </nav>
 
         <!-- Storage Usage Indicator -->
         <div class="mb-6 bg-white/5 backdrop-blur-lg border border-white/20 rounded-xl p-4">
             <div class="flex justify-between items-center mb-2">
-                <h3 class="text-sm font-medium text-gray-300">Storage Usage</h3>
+                <h3 class="text-sm font-medium text-gray-300 font-outfit">Storage Usage</h3>
                 <span class="text-xs text-gray-400" id="storage-percentage">0%</span>
             </div>
             <div class="storage-bar bg-white/10">
-                <div id="storage-used-bar" class="storage-bar h-full bg-gradient-to-r from-green-400 to-blue-500" style="width: 0%"></div>
+                <div id="storage-used-bar" class="storage-bar h-full gradient-multicolor" style="width: 0%"></div>
             </div>
             <div class="flex justify-between text-xs text-gray-400 mt-1">
                 <span id="storage-used">0 MB</span>
@@ -216,15 +279,15 @@
 
         <div class="space-y-6">
             <div>
-                <h1 class="text-3xl font-bold">Upload Images</h1>
+                <h1 class="text-3xl font-bold font-outfit">Upload Images</h1>
                 <p class="text-gray-400 mt-1">Add new images to your vault (up to 100MB per file)</p>
             </div>
 
             <div class="bg-white/5 backdrop-blur-lg border border-white/20 rounded-xl p-6">
                 <form id="upload-form" enctype="multipart/form-data" class="space-y-6">
                     <div>
-                        <label for="category" class="block text-sm font-medium text-gray-300 mb-2">Category *</label>
-                        <select id="category" name="category" required class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none">
+                        <label for="category" class="block text-sm font-medium text-gray-300 mb-2 font-outfit">Category *</label>
+                        <select id="category" name="category" required class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none">
                             <option value="">Select a category...</option>
                             <option value="1">Nature</option>
                             <option value="2">Portraits</option>
@@ -234,7 +297,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Images *</label>
+                        <label class="block text-sm font-medium text-gray-300 mb-2 font-outfit">Images *</label>
                         <div id="drop-zone" class="border-2 border-dashed border-white/20 rounded-lg p-8 text-center cursor-pointer transition-all duration-300">
                             <div class="text-4xl mb-3 text-gray-400">
                                 <i class="fas fa-cloud-upload-alt"></i>
@@ -244,7 +307,7 @@
                             <input type="file" id="image-files" name="imageFiles" multiple accept="image/*" class="hidden">
                         </div>
                         <div id="file-list" class="mt-4 space-y-2">
-                            <p class="text-sm text-gray-300 font-medium">Selected files:</p>
+                            <p class="text-sm text-gray-300 font-medium font-outfit">Selected files:</p>
                             <div id="selected-files" class="space-y-2"></div>
                             <div class="flex justify-between text-xs text-gray-400 mt-2">
                                 <span id="total-files">0 files</span>
@@ -255,33 +318,33 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label for="tags" class="block text-sm font-medium text-gray-300 mb-2">Tags</label>
-                            <input type="text" id="tags" name="tags" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" placeholder="e.g., blog, header, icons (comma-separated)">
+                            <label for="tags" class="block text-sm font-medium text-gray-300 mb-2 font-outfit">Tags</label>
+                            <input type="text" id="tags" name="tags" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none" placeholder="e.g., blog, header, icons (comma-separated)">
                         </div>
                         <div>
-                            <label for="alt" class="block text-sm font-medium text-gray-300 mb-2">Alt Text</label>
-                            <input type="text" id="alt" name="alt" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" placeholder="Alternative text for accessibility">
+                            <label for="alt" class="block text-sm font-medium text-gray-300 mb-2 font-outfit">Alt Text</label>
+                            <input type="text" id="alt" name="alt" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none" placeholder="Alternative text for accessibility">
                         </div>
                     </div>
 
                     <div>
-                        <label for="description" class="block text-sm font-medium text-gray-300 mb-2">Description</label>
-                        <textarea id="description" name="description" rows="3" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" placeholder="Optional description for these images"></textarea>
+                        <label for="description" class="block text-sm font-medium text-gray-300 mb-2 font-outfit">Description</label>
+                        <textarea id="description" name="description" rows="3" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white resize-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none" placeholder="Optional description for these images"></textarea>
                     </div>
 
                     <div class="flex flex-wrap gap-4">
-                        <button type="submit" id="upload-btn" class="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center">
+                        <button type="submit" id="upload-btn" class="flex-1 btn-yellow text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center font-outfit">
                             <i class="fas fa-upload mr-2"></i>
                             <span id="upload-text">Upload Images</span>
                         </button>
-                        <button type="button" id="clear-btn" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex items-center">
+                        <button type="button" id="clear-btn" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex items-center font-outfit">
                             <i class="fas fa-times mr-2"></i>
                             Clear
                         </button>
                     </div>
 
                     <div id="upload-status-container" class="space-y-3 hidden">
-                        <h3 class="text-sm font-medium text-gray-300">Upload Progress</h3>
+                        <h3 class="text-sm font-medium text-gray-300 font-outfit">Upload Progress</h3>
                         <div id="file-progress-container"></div>
                     </div>
                 </form>
@@ -293,7 +356,7 @@
     <div class="modal-overlay" id="modal">
         <div class="modal">
             <div class="modal-header">
-                <h2 class="text-xl font-bold" id="modal-title">Modal Title</h2>
+                <h2 class="text-xl font-bold font-outfit" id="modal-title">Modal Title</h2>
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
@@ -301,8 +364,8 @@
                 <div id="modal-content"></div>
             </div>
             <div class="modal-footer">
-                <button class="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700" id="modal-cancel">Cancel</button>
-                <button class="px-4 py-2 bg-purple-600 rounded hover:bg-purple-700" id="modal-confirm">Confirm</button>
+                <button class="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700 font-outfit" id="modal-cancel">Cancel</button>
+                <button class="px-4 py-2 btn-yellow rounded hover:from-amber-600 hover:to-amber-700 font-outfit" id="modal-confirm">Confirm</button>
             </div>
         </div>
     </div>
@@ -491,7 +554,7 @@
                                 <div class="text-sm truncate">${file.name}</div>
                                 <div class="flex items-center gap-3 mt-1">
                                     <div class="w-full bg-white/10 rounded-full h-1.5">
-                                        <div class="bg-gradient-to-r from-pink-500 to-purple-600 h-1.5 rounded-full progress-bar" style="width: 0%" id="progress-bar-${index}"></div>
+                                        <div class="gradient-yellow-red h-1.5 rounded-full progress-bar" style="width: 0%" id="progress-bar-${index}"></div>
                                     </div>
                                     <span class="text-xs text-gray-400" id="progress-text-${index}">0%</span>
                                 </div>
